@@ -110,7 +110,7 @@ metal raspberry pi kubernetes cluster.
     ssid=$WIRELESS_SSID
     psk=$WIRELESS_PASS
   }
-  EOF  
+  EOF 
   #+END_SRC
 
   After writing the file we will use ~cat~ to verify the details.
