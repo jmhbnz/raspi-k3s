@@ -83,7 +83,39 @@ metal raspberry pi kubernetes cluster.
   #+END_SRC
 
 
-* Step 4 - Enable WiFi at startup
+* Step 4 - Enable wifi at startup
+
+  For this guide we are running our cluser wirelessly.  To ensure we can
+  access our pi's once they boot we need to ensure they boot with a wifi
+  configuration that will connect to our desired network.
+
+  To achieve this we need to set a configuration for the [[https://en.wikipedia.org/wiki/Wpa_supplicant][wpa_supplicant]]
+  application that our raspberry pi's use for managing wireless.
+
+  For security reasons I don't store wireless access point details here.
+  Instead they are retrieved at runtime of the code block using the
+  [[https://bitwarden.com/][bitwarden]] command line utility.
+
+  #+NAME: Write the wireless configuration file
+  #+BEGIN_SRC shell
+  export WIRELESS_SSID=`bw get username wifi`
+  export WIRELESS_PASS=`bw get password wifi`
+  cat > /media/sdcard/wpa_supplicant.conf << EOF
+  country=nz
+  update_config=1
+  ctrl_interface=/var/run/wpa_supplicant
+
+  network={
+    scan_ssid=1
+    ssid=$WIRELESS_SSID
+    psk=$WIRELESS_PASS
+  }
+  EOF  
+  #+END_SRC
+
+  After writing the file we will use ~cat~ to verify the details.
+  If all details are correct you can unmount and remove the media.
+
 
 
 
