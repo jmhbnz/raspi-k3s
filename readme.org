@@ -1,0 +1,92 @@
+#+NAME: Raspberry pi k3s cluster guide
+#+AUTHOR: James Blair
+#+EMAIL: mail@jamesblair.net
+#+DATE: 26th October 2019
+
+
+This file serves as a complete step by step guide for creating a bare
+metal raspberry pi kubernetes cluster.
+
+
+* Pre-requisites
+
+ - This guide uses the [[https://k3s.io/][k3s]] distribution of kubernetes from Rancher.
+
+   I chose this distribution because it is a CNCF certified production
+   grade implementation that is optimised for lightweight implementations
+   such as ARM.
+
+ - For this guide I am using three [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines.
+
+   The cluster will have one leader node and two worker nodes. 
+   For resiliency puposes in future I will update the cluster to run
+   with two leader nodes.
+
+ - This guide requires each Raspberry Pi to have a removable SD card or
+   other removable boot media.  I am use three 32GB SD Cards though any
+   USB or SD card at least 8GB in size should work fine.
+
+
+* Step 1 - Downloading the operating system
+
+  Our first step is to download an image of the latest version of
+  [[https://downloads.raspberrypi.org/raspbian_lite_latest][raspbian lite]].  This is a minimal debian based distribution optimised
+  for rapsberry pis. 
+
+  *Note:* There the raspberry pi download site provide a SHA-256 hash that
+  can be used to verify downloads.  While not covered in this guide this
+  is reccomended to ensure the image you download is genuine.
+
+  #+NAME: Download the os image
+  #+BEGIN_SRC shell
+  cd ~/Downloads/
+  wget 'https://downloads.raspberrypi.org/raspbian_lite_latest'
+  #+END_SRC
+
+
+* Step 2 - Write the image file to removable media
+
+  Our next step is to write the downloaded image file to our removable
+  media.  This step needs to be repeated for each raspberry pi in the
+  cluster.
+
+  *Note:* As my development environment is based on [[https://docs.microsoft.com/en-us/windows/wsl/about][wsl]] I need to use
+  a third party tool to write the image.  If you are on a standard linux
+  distribution you can use the ~dd~ utility to write the image.
+
+  The image writing utility I use is [[https://www.balena.io/etcher/][balena etcher]].  After downloading
+  the latest version:
+   - Insert your removable media.
+   - Select the image file you downloaded earlier.
+   - Select your removable media and start writing the image.
+
+ 
+* Step 3 - Enable ssh at startup
+
+  As our cluster will be headless, i.e. have no screen keyboard or mouse
+  plugged in we need to ensure ssh is configured from boot so that we can
+  remotely connect.
+
+  To do this we just need to add an empty file named ~ssh~ to our newly
+  created sd card 
+
+  #+NAME: Mount newly formatted sd card
+  #+BEGIN_SRC shell
+  sudo mkdir /media/sdcard
+  sudo mount /dev/[SDCARD] /media/sdcard -o umask=000
+  #+END_SRC
+
+
+  #+NAME: Create the blank ssh file in the boot directory
+  #+BEGIN_SRC shell
+  sudo touch /media/sdcard/ssh
+  #+END_SRC
+
+
+* Step 4 - Enable WiFi at startup
+
+
+
+
+
+
