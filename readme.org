@@ -1,48 +1,99 @@
 #+NAME: Raspberry pi k3s cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
-#+DATE: 26th October 2019
+#+DATE: 24th December 2019
 
 
 This file serves as a complete step by step guide for creating a bare
-metal raspberry pi kubernetes cluster.
+metal raspberry pi kubernetes cluster using [[https://k3s.io/][k3s]] from [[https://rancher.com/][Rancher]].
+
+My goal for this build is to replace a server I currently run at home
+that hosts several workloads via Docker with a scalable k8s cluster.
+
+Additionally in future I would like the cluster to be portable and 
+operate via 3G-5G Cellular network and an array of batteries.
+
+I chose k3s as it incredibly lightweight but still CNCF certified and
+production grade software that is optimised for resource constraints of
+raspberry pis.
 
 
 * Pre-requisites
 
- - This guide uses the [[https://k3s.io/][k3s]] distribution of kubernetes from Rancher.
+** Cluster machines
 
-   I chose this distribution because it is a CNCF certified production
-   grade implementation that is optimised for lightweight implementations
-   such as ARM.
-
- - For this guide I am using three [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines.
+   For this guide I am using three [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines.
 
    The cluster will have one leader node and two worker nodes. 
    For resiliency puposes in future I will update the cluster to run
    with two leader nodes.
 
- - This guide requires each Raspberry Pi to have a removable SD card or
+*** TODO Migration to high availability control plane
+
+   For resiliency purposes in future I will update the cluster and this
+   documentation to support a control plane of more than one machine.
+
+
+** Boot media
+
+   This guide requires each Raspberry Pi to have a removable SD card or
    other removable boot media.  I am use three 32GB SD Cards though any
    USB or SD card at least 8GB in size should work fine.
 
+*** TODO Migration to network booting
 
-* Step 1 - Downloading the operating system
+   In future it would be preferable for the raspberry pi's to be able
+   to network boot and setup automatically without an SD card. 
 
-  Our first step is to download an image of the latest version of
-  [[https://downloads.raspberrypi.org/raspbian_lite_latest][raspbian lite]].  This is a minimal debian based distribution optimised
-  for rapsberry pis. 
+   This is a nice to have that I will pursue at a later date once I
+   have a deployed cluster that allows me to migrate off the current
+   server setup I have deployed.
 
-  *Note:* There the raspberry pi download site provide a SHA-256 hash that
-  can be used to verify downloads.  While not covered in this guide this
-  is reccomended to ensure the image you download is genuine.
 
-  #+NAME: Download the os image
-  #+BEGIN_SRC shell
-  cd ~/Downloads/
-  wget 'https://downloads.raspberrypi.org/raspbian_lite_latest'
-  #+END_SRC
 
+
+* Step 1 - Prepare boot media for master 
+
+** Download the latest release
+
+  Our first step is to create the bootable SD Card with a minimal install
+  of [[https://www.raspbian.org/][Raspbian]], which is a free operating system based on [[https://www.debian.org/][Debian]] and is
+  optimised for Raspberry Pi hardware.
+
+  Rather than doing an installation and configuration of an operating system
+  image from scratch I found [[https://github.com/FooDeas/raspberrypi-ua-netinst][this project]] on Github which automates the
+  install and configuration process nicely.
+
+  #+NAME: Download the latest release zip
+  #+begin_src shell :results output verbatim replace :wrap example
+  echo Downloading latest release zip from github
+  curl -s https://api.github.com/repos/foodeas/raspberrypi-ua-netinst/releases/latest \
+  | grep "browser_download_url.*zip" \
+  | cut -d : -f 2,3 \
+  | tr -d \" \
+  | wget -i -
+  
+  echo Checking file is now present
+  ls -l | grep *.zip
+  
+  echo Extracting the zip file
+  unzip -q -d installer *.zip
+  ls -l | grep installer
+  #+end_src
+
+  #+RESULTS: Download the latest release zip
+  #+begin_example
+  Downloading latest release zip from github
+  Checking file is now present
+  -rw-rw-rw- 1 james james 60299545 Aug 12 08:35 raspberrypi-ua-netinst-v2.4.0.zip
+  Extracting the zip file
+  #+end_example
+
+
+** Apply custom configuration
+
+   Our next step after downloading the 
+  
 
 * Step 2 - Write the image file to removable media
 
