@@ -135,6 +135,8 @@ raspberry pis.
   is a Windows 10 laptop with Debian via Windows Subsystem for Linux
   which does not support ~lsblk~ or other disk management commands.
 
+** Obtain sd card partition information
+
   Our first step is to insert the SD Card and ensure it is formatted
   correctly as ~FAT32~.  To do that we need to know the number of the
   disk we want to format, we can find that via powershell.
@@ -172,6 +174,8 @@ raspberry pis.
   #+end_example
 
 
+** Create and format sd card partition
+
   Once we know the number of the disk we want to format we can proceed.
   In the example above I have a 32GB SD Card which shows as number ~1~.
 
@@ -183,18 +187,36 @@ raspberry pis.
   Due to the risk of data loss this step is not automated. Once existing
   partitions have been cleared we can use the following block to:
   - Create a new partition using masixmum available space
-  - Assign a drive letter in windows
+  - Assign a free drive letter in windows
   - Mount the disk in WSL so we can copy to it
   - Copy the install media over to the partition 
 
-
-  #+NAME: Format the sd card
+  #+NAME: Create sd card partition and copy media
   #+begin_src shell :results output code verbatim replace
+  echo Use powershell to create new partition and format 
+  powershell.exe -nologo
+  new-partition -disknumber 1 -usemaximumsize -driveletter d
+  format-volume -driveletter d -filesystem FAT32 -newfilesystemlabel sd
+  exit
 
+  echo Mount the new partition in wsl
+  sudo mkdir /mnt/d
+  sudo mount -t drvfs d: /mnt/d
+
+  echo Copy the contents of installer to sd
+  cp installer/* /mnt/d/
   #+end_src
 
 
+* Step 3 - Boot the pi and remotely connect
 
+  Provided the configuration on the sd card is valid and the pi has
+  been able to successfully obtain an ip address via dhcp on boot 
+  then following a 10-20minute net install process the pi will be
+  online and accessible via ssh using the private key corresponding
+  to the public key we supplied in our ~installer-config.txt~ file.
 
+** Setup ssh and connect
 
+  #+NAME: Ensure our ssh-agent is setup
 
