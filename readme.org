@@ -1,4 +1,4 @@
-#+NAME: Raspberry pi k3s cluster guide
+#+TITLE: Raspberry pi k3s cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
 #+DATE: 24th December 2019
