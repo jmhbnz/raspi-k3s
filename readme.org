@@ -144,6 +144,9 @@ raspberry pis.
   echo Retrieving disk list via powershell
   powershell.exe -nologo 
   get-disk | select Number, FriendlyName, Size
+  
+  echo Retrieving partition list via powershell
+  get-disk | get-partition | select PartitionNumber, DriveLetter, Size, Type
   exit
   #+end_src
 
@@ -151,19 +154,39 @@ raspberry pis.
   #+begin_example
   Retrieving disk list via powershell
   
-  PS get-disk | select Number, FriendlyName, Size
   Number FriendlyName                       Size
   ------ ------------                       ----
        1 Realtek PCIE Card Reader    31104958464
        0 SAMSUNG MZVLB256HAHQ-000H1 256060514304
-    
+  
+  Retrieving partition list via powershell
+  
+  PartitionNumber DriveLetter         Size Type        
+  --------------- -----------         ---- ----        
+                1           D    268435456 FAT32 XINT13
+                2           E  30832328704 Unknown     
+                1                272629760 System      
+                2                 16777216 Reserved    
+                3           C 254735810560 Basic       
+                4               1027604480 Recovery   
   #+end_example
 
-  
+
   Once we know the number of the disk we want to format we can proceed.
   In the example above I have a 32GB SD Card which shows as number ~1~.
 
-  Our next step is to again user powershell, this time to format the sd.
+  Checking the disk we can see some partitions that exist already from
+  previous use of the card.  To delete these partitions you can use the
+  ~Remove-Partition -DiskNumber X -PartitionNumber Y~ command where
+  ~X~ and ~Y~ relate to the output of your disk and partition number.
+
+  Due to the risk of data loss this step is not automated. Once existing
+  partitions have been cleared we can use the following block to:
+  - Create a new partition using masixmum available space
+  - Assign a drive letter in windows
+  - Mount the disk in WSL so we can copy to it
+  - Copy the install media over to the partition 
+
 
   #+NAME: Format the sd card
   #+begin_src shell :results output code verbatim replace
