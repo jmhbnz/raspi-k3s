@@ -204,7 +204,7 @@ raspberry pis.
   sudo mount -t drvfs d: /mnt/d
 
   echo Copy the contents of installer to sd
-  cp installer/* /mnt/d/
+  cp -r installer/* /mnt/d/
   #+end_src
 
 
