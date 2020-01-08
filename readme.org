@@ -139,11 +139,20 @@ raspberry pis.
    #+NAME: Copy in post-install script
    #+begin_src shell :results output code verbatim replace :wrap example
    echo Copying in post-install.txt
-   cp post-install.txt /installer/raspberrypi-ua-netinst/config/
+   cp post-install.txt installer/raspberrypi-ua-netinst/config/
 
    echo Display wordcount of file after copy to validate
    wc installer/raspberrypi-ua-netinst/config/post-install.txt
    #+end_src
+
+   #+RESULTS: Copy in post-install script
+   #+begin_example
+   Copying in post-install.txt
+   Display wordcount of file after copy to validate
+     7  31 212 installer/raspberrypi-ua-netinst/config/post-install.txt
+   #+end_example
+
+
 
 
 * Step 2 - Copy the install media to sd card
@@ -225,6 +234,11 @@ raspberry pis.
 
   echo Copy the contents of installer to sd
   cp -r installer/* /mnt/d/
+
+  echo Eject the sd card ready for use
+  powershell.exe -nologo
+  (new-object -comobject shell.application).namepsace(17).parsename("E:").invokeverb("eject")
+  exit
   #+end_src
 
 
