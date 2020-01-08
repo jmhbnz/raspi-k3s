@@ -93,7 +93,7 @@ raspberry pis.
   #+end_example
 
   
-** Apply custom configuration
+** Apply custom install configuration
 
    Our next step after downloading the latest release is to apply our own
    installation configuration using a simple txt file.
@@ -124,6 +124,26 @@ raspberry pis.
    Display wordcount of file after copy to validate update
      33   64 1351 installer/raspberrypi-ua-netinst/config/installer-config.txt
    #+end_example
+
+
+** Apply custom post install script
+
+   The final step is to supply a post install script which completes additional
+   security hardening and production readiness automatically.
+
+   To supply a script we can provide an additional ~post-install.txt~ file as 
+   documented [[https://github.com/FooDeas/raspberrypi-ua-netinst/blob/devel/doc/INSTALL_ADVANCED.md][here]].
+
+   I have a hardening script prepared in this repository that we can copy in.
+
+   #+NAME: Copy in post-install script
+   #+begin_src shell :results output code verbatim replace :wrap example
+   echo Copying in post-install.txt
+   cp post-install.txt /installer/raspberrypi-ua-netinst/config/
+
+   echo Display wordcount of file after copy to validate
+   wc installer/raspberrypi-ua-netinst/config/post-install.txt
+   #+end_src
 
 
 * Step 2 - Copy the install media to sd card
