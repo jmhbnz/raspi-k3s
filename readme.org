@@ -142,7 +142,7 @@ raspberry pis.
    #+begin_example
    Copying in post-install.txt
    Display wordcount of file after copy to validate
-     48  231 1894 installer/raspberrypi-ua-netinst/config/post-install.txt
+     92  290 3483 installer/raspberrypi-ua-netinst/config/post-install.txt
    #+end_example
 
 

@@ -1,3 +1,6 @@
+#================================================================
+# Post install ssh configuration
+#================================================================
 echo "Changing ssh port..."
 sed -i "s/#Port 22/Port 2122/" /rootfs/etc/ssh/sshd_config
 
@@ -6,7 +9,13 @@ sed -i "s/UsePAM yes/UsePAM no/" /rootfs/etc/ssh/sshd_config
 
 echo "Restarting ssh service..."
 systemctl restart sshd
+#================================================================
 
+
+
+#================================================================
+# Post install fail2ban configuration
+#================================================================
 echo "Ensure fail2ban service is enabled..."
 systemctl enable fail2ban
 
@@ -24,13 +33,54 @@ echo 'maxretry=3' >> /rootfs/etc/fail2ban/jail.local
 
 echo "Restart fail2ban service..."
 sudo systemctl restart fail2ban
+#================================================================
 
+
+
+#================================================================
+# Post install bash configuration
+#================================================================
 echo "Configuring bash prompt..."
 echo "PS1='\[\033[02;31m\]\u@\H:\[\033[01;34m\]\w\$\[\033[00m\] '" >> /rootfs/home/james/.bashrc
+#================================================================
 
+
+
+#================================================================
+# Post install firewall configuration
+#================================================================
+echo "Switch to legacy iptables for k3s support"
+iptables -F
+update-alternatives --set iptables /usr/sbin/iptables-legacy
+
+echo "Allowing local traffic in iptables"
+iptables -A INPUT -i lo -j ACCEPT
+
+echo "Allow all established connections in iptables"
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+echo "Allow ssh connections in iptables"
+iptables -A INPUT  -p tcp --dport 2122 -j ACCEPT
+iptables -A OUTPUT -p tcp --sport 2122 -j ACCEPT
+
+echo "Drop all other traffic"
+iptables -A INPUT -j DROP
+
+echo "Ensure iptables-persistent is started"
+systemctl start iptables-persistent
+
+echo "Ensure iptables-persistent is enabled"
+systemctl enable iptables-persistent
+#================================================================
+
+
+
+#================================================================
+# Post install knockd configuration
+#================================================================
 echo "Configuring port knocking..."
-sed -i "/UseSysLog/ a\interface = wlan0" /rootfs/etc/knockd.conf
-sed -i
+sed -i '/UseSyslog/a\ \ \ \ \ \ \ \ \interface=wlan0' /rootfs/etc/knockd.conf
+sed -i '/UseSyslog/a\ \ \ \ \ \ \ \ \logfile = /var/log/knockd.log' /rootfs/etc/knockd.conf
 sed -i "s/sequence    = 7000,8000,9000/sequence    = 6315,3315,1315,5315/" /rootfs/etc/knockd.conf
 sed -i "s/sequence    = 9000,8000,7000/sequence    = 5315,1315,3315,6315/" /rootfs/etc/knockd.conf
 
@@ -39,3 +89,4 @@ systemctl enable knockd
 
 echo "Restarting knock service..."
 systemctl restart knockd
+#================================================================
