@@ -8,7 +8,7 @@ This file serves as a complete step by step guide for creating a bare
 metal raspberry pi kubernetes cluster using [[https://k3s.io/][k3s]] from [[https://rancher.com/][Rancher]].
 
 My goal for this build is to replace a server I currently run at home
-that hosts several workloads via Docker with a scalable k8s cluster.
+that hosts several workloads via Docker with a scalable k3s cluster.
 
 Additionally in future I would like the cluster to be portable and 
 operate via 3G-5G Cellular network and an array of batteries.
@@ -24,15 +24,10 @@ raspberry pis.
 
    For this guide I am using three [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines.
 
-   The cluster will have one leader node and two worker nodes. 
-   For resiliency puposes in future I will update the cluster to run
-   with two leader nodes.
-
-*** TODO Migration to high availability control plane
-
-   For resiliency purposes in future I will update the cluster and this
-   documentation to support a control plane of more than one machine.
-
+   The cluster will have two leader node and two worker nodes.
+ 
+   For resiliency puposes in future I will consider updateing the cluster
+   to run with all nodes as leader nodes.
 
 
 ** Boot media
@@ -49,8 +44,6 @@ raspberry pis.
    This is a nice to have that I will pursue at a later date once I
    have a deployed cluster that allows me to migrate off the current
    server setup I have deployed.
-
-
 
 
 * Step 1 - Prepare boot media for master 
@@ -88,11 +81,11 @@ raspberry pis.
   Checking file is now present
   -rw-rw-rw- 1 james james 60299545 Aug 12 08:35 raspberrypi-ua-netinst-v2.4.0.zip
   Extracting the zip file
-  drwxrwxrwx 1 james james     4096 Dec 24 19:35 installer
-  -rw-rw-rw- 1 james james     1351 Dec 24 18:02 installer-config.txt
+  drwxrwxrwx 1 james james     4096 Jan 20 09:31 installer
+  -rwxrwxrwx 1 james james     2843 Jan  9 08:12 installer-config.txt
   #+end_example
 
-  
+
 ** Apply custom install configuration
 
    Our next step after downloading the latest release is to apply our own
@@ -110,7 +103,7 @@ raspberry pis.
    wc installer/raspberrypi-ua-netinst/config/installer-config.txt
 
    echo Overwriting /installer/raspberrypi-ua-netinst/config/installer-config.txt
-   cp installer-config.txt /installer/raspberrypi-ua-netinst/config/
+   cp installer-config.txt installer/raspberrypi-ua-netinst/config/
 
    echo Display wordcount of file after copy to validate update
    wc installer/raspberrypi-ua-netinst/config/installer-config.txt
@@ -119,10 +112,10 @@ raspberry pis.
    #+RESULTS: Overwrite installer configuration file
    #+begin_example
    Display wordcount of original file for comparison
-     33   64 1351 installer/raspberrypi-ua-netinst/config/installer-config.txt
+     3  23 157 installer/raspberrypi-ua-netinst/config/installer-config.txt
    Overwriting /installer/raspberrypi-ua-netinst/config/installer-config.txt
    Display wordcount of file after copy to validate update
-     33   64 1351 installer/raspberrypi-ua-netinst/config/installer-config.txt
+     67   85 2843 installer/raspberrypi-ua-netinst/config/installer-config.txt
    #+end_example
 
 
@@ -149,10 +142,8 @@ raspberry pis.
    #+begin_example
    Copying in post-install.txt
    Display wordcount of file after copy to validate
-     7  31 212 installer/raspberrypi-ua-netinst/config/post-install.txt
+     48  231 1894 installer/raspberrypi-ua-netinst/config/post-install.txt
    #+end_example
-
-
 
 
 * Step 2 - Copy the install media to sd card
