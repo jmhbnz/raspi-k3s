@@ -1,48 +1,41 @@
 echo "Changing ssh port..."
-eval chroot /rootfs /usr/bin/sed -i -e 's/#Port 22/Port 2122/g' /etc/ssh/sshd_config 2>&1 | output_filter
-if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-   echo "OK"
-else
-   echo "FAILED !"
-fi
+sed -i "s/#Port 22/Port 2122/" /rootfs/etc/ssh/sshd_config
 
-echo "Restarting ssh daemon..."
-eval chroot /rootfs /user/bin/systemctl restart ssh 2>&1 | output_filter
-if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-   echo "OK"
-else
-   echo "FAILED !"
-fi
+echo "Turning off ssh pam..."
+sed -i "s/UsePAM yes/UsePAM no/" /rootfs/etc/ssh/sshd_config
+
+echo "Restarting ssh service..."
+systemctl restart sshd
 
 echo "Ensure fail2ban service is enabled..."
-eval chroot /rootfs /user/bin/systemctl enable fail2ban 2>&1 | output_filter
-if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-   echo "OK"
-else
-   echo "FAILED !"
-fi
+systemctl enable fail2ban
 
 echo "Configure fail2ban ssh jail..."
-eval chroot /rootfs /user/bin/touch /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo '[ssh]' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'enabled=true' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'port=2122' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'filter=sshd' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'logpath=/var/log/auth.log' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'bantime=1800' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'banaction=iptables-allports' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'findtime=900' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-eval chroot /rootfs /user/bin/echo 'maxretry=3' >> /etc/fail2ban/jail.local 2>&1 | output_filter
-if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-   echo "OK"
-else
-   echo "FAILED !"
-fi
+touch /rootfs/etc/fail2ban/jail.local
+echo '[ssh]' >> /rootfs/etc/fail2ban/jail.local
+echo 'enabled=true' >> /rootfs/etc/fail2ban/jail.local
+echo 'port=2122' >> /rootfs/etc/fail2ban/jail.local
+echo 'filter=sshd' >> /rootfs/etc/fail2ban/jail.local
+echo 'logpath=/var/log/auth.log' >> /rootfs/etc/fail2ban/jail.local
+echo 'bantime=1800' >> /rootfs/etc/fail2ban/jail.local
+echo 'banaction=iptables-allports' >> /rootfs/etc/fail2ban/jail.local
+echo 'findtime=900' >> /rootfs/etc/fail2ban/jail.local
+echo 'maxretry=3' >> /rootfs/etc/fail2ban/jail.local
 
 echo "Restart fail2ban service..."
-eval chroot /rootfs /user/bin/systemctl restart fail2ban 2>&1 | output_filter
-if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-   echo "OK"
-else
-   echo "FAILED !"
-fi
+sudo systemctl restart fail2ban
+
+echo "Configuring bash prompt..."
+echo "PS1='\[\033[02;31m\]\u@\H:\[\033[01;34m\]\w\$\[\033[00m\] '" >> /rootfs/home/james/.bashrc
+
+echo "Configuring port knocking..."
+sed -i "/UseSysLog/ a\interface = wlan0" /rootfs/etc/knockd.conf
+sed -i
+sed -i "s/sequence    = 7000,8000,9000/sequence    = 6315,3315,1315,5315/" /rootfs/etc/knockd.conf
+sed -i "s/sequence    = 9000,8000,7000/sequence    = 5315,1315,3315,6315/" /rootfs/etc/knockd.conf
+
+echo "Enabling port knocking..."
+systemctl enable knockd
+
+echo "Restarting knock service..."
+systemctl restart knockd

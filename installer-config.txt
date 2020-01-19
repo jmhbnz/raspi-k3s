@@ -3,7 +3,7 @@
 #================================================================
 preset=server
 firmware_packages=1
-packages=nano,curl,htop,git,smartmontools,fail2ban,knockd,iptables,glusterfs-server,sed
+packages=nano,curl,htop,git,smartmontools,fail2ban,knockd,iptables,glusterfs-server,sed,iptables-persistent
 #================================================================
 
 
