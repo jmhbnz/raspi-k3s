@@ -50,18 +50,14 @@ echo "PS1='\[\033[02;31m\]\u@\H:\[\033[01;34m\]\w\$\[\033[00m\] '" >> /rootfs/ho
 # Post install firewall configuration
 #================================================================
 echo "Switch to legacy iptables for k3s support"
-iptables -F
-update-alternatives --set iptables /usr/sbin/iptables-legacy
+#iptables -F
+#update-alternatives --set iptables /usr/sbin/iptables-legacy
 
 echo "Allowing local traffic in iptables"
 iptables -A INPUT -i lo -j ACCEPT
 
 echo "Allow all established connections in iptables"
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-
-echo "Allow ssh connections in iptables"
-iptables -A INPUT  -p tcp --dport 2122 -j ACCEPT
-iptables -A OUTPUT -p tcp --sport 2122 -j ACCEPT
 
 echo "Drop all other traffic"
 iptables -A INPUT -j DROP
@@ -78,13 +74,23 @@ systemctl enable iptables-persistent
 #================================================================
 # Post install knockd configuration
 #================================================================
-echo "Configuring port knocking..."
-sed -i '/UseSyslog/a\ \ \ \ \ \ \ \ \interface=wlan0' /rootfs/etc/knockd.conf
-sed -i '/UseSyslog/a\ \ \ \ \ \ \ \ \logfile = /var/log/knockd.log' /rootfs/etc/knockd.conf
-sed -i "s/sequence    = 7000,8000,9000/sequence    = 6315,3315,1315,5315/" /rootfs/etc/knockd.conf
-sed -i "s/sequence    = 9000,8000,7000/sequence    = 5315,1315,3315,6315/" /rootfs/etc/knockd.conf
+echo "Writing port knocking configuration file..."
+cat << EOF > /rootfs/etc/knockd.conf
+[options]
+  UseSysLog
+  logfile = /var/log/knockd.log
+  interface=wlan0
+[ssh]
+  sequence = 6315,3315,1315,5315
+  seq_timeout = 15
+  start_command = /sbin/iptables -I INPUT 1 -s %IP% -p tcp --dport 2122 -j ACCEPT
+  tcpflags = syn
+  cmd_timeout = 60
+  stop_command = /sbin/iptables -D INPUT -s %IP% -p tcp --dport 2122 -j ACCEPT
+EOF
 
 echo "Enabling port knocking..."
+sed -i "s/START_KNOCKD=0/START_KNOCKD=1/" /rootfs/etc/default/knockd
 systemctl enable knockd
 
 echo "Restarting knock service..."

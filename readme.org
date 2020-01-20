@@ -1,3 +1,4 @@
+B
 #+TITLE: Raspberry pi k3s cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
@@ -81,8 +82,8 @@ raspberry pis.
   Checking file is now present
   -rw-rw-rw- 1 james james 60299545 Aug 12 08:35 raspberrypi-ua-netinst-v2.4.0.zip
   Extracting the zip file
-  drwxrwxrwx 1 james james     4096 Jan 20 09:31 installer
-  -rwxrwxrwx 1 james james     2843 Jan  9 08:12 installer-config.txt
+  drwxrwxrwx 1 james james     4096 Jan 20 11:12 installer
+  -rwxrwxrwx 1 james james     2863 Jan 10 17:04 installer-config.txt
   #+end_example
 
 
@@ -115,7 +116,7 @@ raspberry pis.
      3  23 157 installer/raspberrypi-ua-netinst/config/installer-config.txt
    Overwriting /installer/raspberrypi-ua-netinst/config/installer-config.txt
    Display wordcount of file after copy to validate update
-     67   85 2843 installer/raspberrypi-ua-netinst/config/installer-config.txt
+     67   85 2863 installer/raspberrypi-ua-netinst/config/installer-config.txt
    #+end_example
 
 
@@ -142,7 +143,7 @@ raspberry pis.
    #+begin_example
    Copying in post-install.txt
    Display wordcount of file after copy to validate
-     92  290 3483 installer/raspberrypi-ua-netinst/config/post-install.txt
+     98  282 3429 installer/raspberrypi-ua-netinst/config/post-install.txt
    #+end_example
 
 
@@ -221,7 +222,7 @@ raspberry pis.
 
   echo Mount the new partition in wsl
   sudo mkdir /mnt/d
-  sudo mount -t drvfs d: /mnt/d
+  sudo mount -t drvfs d: /mnt/e/
 
   echo Copy the contents of installer to sd
   cp -r installer/* /mnt/d/
