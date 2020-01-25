@@ -49,10 +49,6 @@ echo "PS1='\[\033[02;31m\]\u@\H:\[\033[01;34m\]\w\$\[\033[00m\] '" >> /rootfs/ho
 #================================================================
 # Post install firewall configuration
 #================================================================
-echo "Switch to legacy iptables for k3s support"
-iptables -F
-update-alternatives --set iptables /usr/sbin/iptables-legacy
-
 echo "Allowing local traffic in iptables"
 iptables -A INPUT -i lo -j ACCEPT
 
@@ -63,13 +59,13 @@ echo "Drop all other traffic"
 iptables -A INPUT -j DROP
 
 echo "Ensure iptables-persistent is started"
-systemctl start iptables-persistent
+systemctl start netfilter-persistent
 
 echo "Ensure iptables-persistent is enabled"
-systemctl enable iptables-persistent
+systemctl enable netfilter-persistent
 
 echo "Ensure firewall rules are saved"
-dpkg-reconfigure -y iptables-persistent
+netfilter-persistent save
 #================================================================
 
 
@@ -92,15 +88,17 @@ cat << EOF > /rootfs/etc/knockd.conf
   stop_command = /sbin/iptables -D INPUT -s %IP% -p tcp --dport 2122 -j ACCEPT
 EOF
 
-echo "Enabling port knocking..."
+echo "Enabling knockd.service ..."
 sed -i "s/START_KNOCKD=0/START_KNOCKD=1/" /rootfs/etc/default/knockd
 cat << EOF >> /rootfs/lib/systemd/system/knockd.service 
+
 [Install]
 WantedBy=multi-user.target
 Alias=knockd.service
 EOF
+
 systemctl enable knockd.service
 
-echo "Restarting knock service..."
-systemctl restart knockd
+echo "Start knockd service..."
+systemctl start knockd.service
 #================================================================
