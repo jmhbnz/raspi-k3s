@@ -244,5 +244,123 @@ raspberry pis.
 
 ** Setup ssh and connect
 
-  #+NAME: Ensure our ssh-agent is setup
+  First step, we ensure our ssh agent is running and has our key added.
 
+  #+NAME: Setup ssh agent
+  #+begin_src shell :results output verbatim replace :wrap example
+  # Ensure our ssh-agent is running.
+  eval `ssh-agent`
+
+  # Make sure our private key is added.
+  ssh-add ~/.ssh/james
+  #+end_src
+
+  Next we can port knock and connect.
+
+  #+NAME: Knock and enter
+  #+begin_src shell :results output verbatim replace :wrap example
+  # Setup machine variables
+  export port=2122
+  export machineip=192.168.1.122  
+  export knocksequence=[SEQUENCE HERE]
+  
+  # Knock and enter
+  knock $machineip $knocksequence && ssh -p $port $machineip 
+  #+end_src
+
+** Setup glusterfs storage cluster
+
+  Now that our machines are online and we have connected we can setup our storage cluster.
+
+  For a distributed storage cluster we are using [[https://www.gluster.org/][glusterfs]]. As part of our earlier setup gluster was automatically installed.  We just need to configure it.
+
+  Our first step is to ensure our storage drives attached to our raspberry pi's are formatted. In our case our drives are all showing as ~/dev/sda~ with no existing partitions, ensure you review your situation with ~lsblk~ first and ajdust the commands below as neccessary!
+
+  #+NAME: Format and mount storage bricks
+  #+begin_src shell :results output verbatime replace :wrap example
+  # Format the /dev/sda1 partition as xfs
+  sudo mkfs.xfs -i size=512 /dev/sda1
+  
+  # Make the mount point directory
+  sudo mkdir -p /data/brick1
+
+  # Update fstab to ensure the mount will resume on boot
+  echo '/dev/sda1 /data/brick1 xfs defaults 1 2' | sudo tee -a /etc/fstab
+  
+  # Mount the new filesystem now
+  sudo mount -a && sudo mount
+  #+end_src
+
+  The gluster processes on the nodes need to be able to communicate with each other. To simplify this setup, configure the firewall on each node to accept all traffic from the other node.
+
+  In our four node cluster this means ensuring we have rules present for all nodes. Adjust as neccessary for the requirements of your cluster! 
+
+  #+NAME: Setup firewall rules for inter cluster communication
+  #+begin_src shell :results output verbatime replace :wrap example
+  # Add the firewall rules
+  sudo iptables -I INPUT -p all -s 192.168.1.122 -j ACCEPT
+  sudo iptables -I INPUT -p all -s 192.168.1.124 -j ACCEPT
+  sudo iptables -I INPUT -p all -s 192.168.1.126 -j ACCEPT
+  sudo iptables -I INPUT -p all -s 192.168.1.128 -j ACCEPT
+  
+  # Ensure these are saved permanently
+  sudo netfilter-persistent save
+  #+end_src
+
+  Next we need to ensure the glusterfs daemon is enabled and started.
+
+  #+NAME: Ensure glusterd is enabled and running
+  #+begin_src shell :results output verbatim replace :wrap example
+  # Ensure the gluster service starts on boot
+  sudo systemctl enable glusterd
+
+  # Start the gluster service now
+  sudo systemctl start glusterd
+
+  # Check the service status to confirm running
+  sudo systemctl status glusterd  
+  #+end_src
+
+  Now we're ready to test connectivity between all the gluster peers.
+  
+  #+NAME: Complete cluster probes
+  #+begin_src shell :results output verbatim replace :wrap example
+  # Complete the peer probes
+  sudo gluster peer probe 192.168.1.122
+  sudo gluster peer probe 192.168.1.124
+  sudo gluster peer probe 192.168.1.126
+  sudo gluster peer probe 192.168.1.128
+
+  # Validate the peer status
+  sudo gluster peer status
+  #+end_src
+
+  Provided connectivity was established successfully you are now ready to setup a gluster volume.
+
+  *Note:* The ~gluster volume create~ command only needs to be run from any one node.  
+
+  #+NAME: Setup gluster volume
+  #+begin_src shell :results output verbatim repalce :wrap example
+  # Create the gluster volume folder (all nodes)
+  sudo mkdir -p /data/brick1/jammaraid 
+
+  # Create the gluster volume itself (one node)
+  sudo gluster volume create jammaraid 192.168.1.122:/data/brick1/jammaraid 192.168.1.124:/data/brick1/jammaraid 192.168.1.126:/data/brick1/jammaraid 192.168.1.128:/data/brick1/jammaraid force
+
+  # Ensure the volume is started
+  sudo gluster volume start jammaraid  
+
+  # Confirm the volume has been created
+  sudo gluster volume info
+  #+end_src
+
+  Now that the gluster volume has been created and started we can mount it within each node so it is accessible for use :)
+
+  #+NAME: Mount the gluster volume
+  #+begin_src shell :results output verbatim replace :wrap example
+  # Create the gluster volume mount point
+  sudo mkdir -p /media/raid
+ 
+  # Mount the volume
+  sudo mount -t glusterfs localhost:jammaraid /media/raid    
+  #+end_src
