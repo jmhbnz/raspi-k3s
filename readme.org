@@ -1,4 +1,4 @@
-B
+# -*- ii: ii; -*-
 #+TITLE: Raspberry pi k3s cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
@@ -55,9 +55,9 @@ raspberry pis.
   of [[https://www.raspbian.org/][Raspbian]], which is a free operating system based on [[https://www.debian.org/][Debian]] and is
   optimised for Raspberry Pi hardware.
 
-  Rather than doing an installation and configuration of an operating system
-  image from scratch I found [[https://github.com/FooDeas/raspberrypi-ua-netinst][this project]] on Github which automates the
-  install and configuration process nicely.
+  Rather than doing an installation and configuration of an os image from
+  scratch I found [[https://github.com/FooDeas/raspberrypi-ua-netinst][this project]] on Github which automates the install and
+  configuration process nicely.
 
   #+NAME: Download the latest release zip
   #+begin_src shell :results output verbatim replace :wrap example
