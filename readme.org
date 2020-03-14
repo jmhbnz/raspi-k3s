@@ -5,62 +5,47 @@
 #+DATE: 24th December 2019
 
 
-This file serves as a complete step by step guide for creating a bare
-metal raspberry pi kubernetes cluster using [[https://k3s.io/][k3s]] from [[https://rancher.com/][Rancher]].
+This file serves as a complete step by step guide for creating a bare metal raspberry pi kubernetes cluster using [[https://k3s.io/][k3s]] from [[https://rancher.com/][Rancher]].
 
-My goal for this build is to replace a server I currently run at home
-that hosts several workloads via Docker with a scalable k3s cluster.
+My goal for this build is to replace a server I currently run at home that hosts several workloads via Docker with a scalable k3s cluster.
 
-Additionally in future I would like the cluster to be portable and 
-operate via 3G-5G Cellular network and an array of batteries.
+Additionally in future I would like the cluster to be portable and operate via 3G-5G Cellular network and an array of batteries.
 
-I chose k3s as it incredibly lightweight but still CNCF certified and
-production grade software that is optimised for resource constraints of
-raspberry pis.
+I chose k3s as it incredibly lightweight but still CNCF certified and production grade software that is optimised for resource constraints of raspberry pis.
 
 
 * Pre-requisites
 
 ** Cluster machines
 
-   For this guide I am using three [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines.
+   For this guide I am using four [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines.
 
-   The cluster will have two leader node and two worker nodes.
+   The cluster will have two leader nodes and two worker nodes.
  
-   For resiliency puposes in future I will consider updateing the cluster
-   to run with all nodes as leader nodes.
+   For resiliency puposes in future I will consider updateing the cluster to run with all nodes as leader nodes.
 
 
 ** Boot media
 
-   This guide requires each Raspberry Pi to have a removable SD card or
-   other removable boot media.  I am use three 32GB SD Cards though any
-   USB or SD card at least 8GB in size should work fine.
+   This guide requires each Raspberry Pi to have a removable SD card or other removable boot media.  I am using four 32GB SD Cards though any USB or SD card at least 8GB in size should work fine.
 
 *** TODO Migration to network booting
 
-   In future it would be preferable for the raspberry pi's to be able
-   to network boot and setup automatically without an SD card. 
+   In future it would be preferable for the raspberry pi's to be able to network boot and setup automatically without an SD card. 
 
-   This is a nice to have that I will pursue at a later date once I
-   have a deployed cluster that allows me to migrate off the current
-   server setup I have deployed.
+   This is a nice to have that I will pursue at a later date once I have a deployed cluster that allows me to migrate off the current server setup I have deployed.
 
 
 * Step 1 - Prepare boot media for master 
 
 ** Download the latest release
 
-  Our first step is to create the bootable SD Card with a minimal install
-  of [[https://www.raspbian.org/][Raspbian]], which is a free operating system based on [[https://www.debian.org/][Debian]] and is
-  optimised for Raspberry Pi hardware.
+  Our first step is to create the bootable SD Card with a minimal install of [[https://www.raspbian.org/][Raspbian]], which is a free operating system based on [[https://www.debian.org/][Debian]] and is optimised for Raspberry Pi hardware.
 
-  Rather than doing an installation and configuration of an os image from
-  scratch I found [[https://github.com/FooDeas/raspberrypi-ua-netinst][this project]] on Github which automates the install and
-  configuration process nicely.
+  Rather than doing an installation and configuration of an os image from scratch I found [[https://github.com/FooDeas/raspberrypi-ua-netinst][this project]] on Github which automates the install and configuration process nicely.
 
   #+NAME: Download the latest release zip
-  #+begin_src shell :results output verbatim replace :wrap example
+  #+begin_src shell :wrap example
   echo Downloading latest release zip from github
   curl -s https://api.github.com/repos/foodeas/raspberrypi-ua-netinst/releases/latest \
   | grep "browser_download_url.*zip" \
@@ -89,17 +74,14 @@ raspberry pis.
 
 ** Apply custom install configuration
 
-   Our next step after downloading the latest release is to apply our own
-   installation configuration using a simple txt file.
+   Our next step after downloading the latest release is to apply our own installation configuration using a simple txt file.
 
-   There is great documentation online howing what configuration options are
-   available [[https://github.com/malignus/raspberrypi-ua-netinst/blob/master/doc/INSTALL_CUSTOM.md][here]].
+   There is great documentation online howing what configuration options are available [[https://github.com/malignus/raspberrypi-ua-netinst/blob/master/doc/INSTALL_CUSTOM.md][here]].
 
-   For our purposes we just over-write the file downloaded and extracted in
-   the previous step with one we have prepared earlier :)
+   For our purposes we just over-write the file downloaded and extracted in the previous step with one we have prepared earlier :)
 
    #+NAME: Overwrite installer configuration file
-   #+begin_src shell :results output code verbatim replace :wrap example
+   #+begin_src shell :wrap example
    echo Display wordcount of original file for comparison
    wc installer/raspberrypi-ua-netinst/config/installer-config.txt
 
@@ -122,16 +104,14 @@ raspberry pis.
 
 ** Apply custom post install script
 
-   The final step is to supply a post install script which completes additional
-   security hardening and production readiness automatically.
+   The final step is to supply a post install script which completes additional security hardening and production readiness automatically.
 
-   To supply a script we can provide an additional ~post-install.txt~ file as 
-   documented [[https://github.com/FooDeas/raspberrypi-ua-netinst/blob/devel/doc/INSTALL_ADVANCED.md][here]].
+   To supply a script we can provide an additional ~post-install.txt~ file as documented [[https://github.com/FooDeas/raspberrypi-ua-netinst/blob/devel/doc/INSTALL_ADVANCED.md][here]].
 
    I have a hardening script prepared in this repository that we can copy in.
 
    #+NAME: Copy in post-install script
-   #+begin_src shell :results output code verbatim replace :wrap example
+   #+begin_src shell :wrap example
    echo Copying in post-install.txt
    cp post-install.txt installer/raspberrypi-ua-netinst/config/
 
@@ -149,21 +129,16 @@ raspberry pis.
 
 * Step 2 - Copy the install media to sd card
 
-  Our next step is to copy the contents of the ~installer/~ folder
-  to a *FAT32* formatted SD Card.
+  Our next step is to copy the contents of the ~installer/~ folder to a *FAT32* formatted removable media i.e. SD Card.
 
-  Unfortunately this is currently a windows step as my dev environment
-  is a Windows 10 laptop with Debian via Windows Subsystem for Linux
-  which does not support ~lsblk~ or other disk management commands.
+  Unfortunately this is currently a windows step as my dev environment is a Windows 10 laptop with Debian via Windows Subsystem for Linux which does not support ~lsblk~ or other disk management commands.
 
 ** Obtain sd card partition information
 
-  Our first step is to insert the SD Card and ensure it is formatted
-  correctly as ~FAT32~.  To do that we need to know the number of the
-  disk we want to format, we can find that via powershell.
+  Our first step is to insert the SD Card and ensure it is formatted correctly as ~FAT32~.  To do that we need to know the number of the disk we want to format, we can find that via powershell.
 
   #+NAME: Get disks via windows powershell
-  #+begin_src shell :results output code verbatim replace :wrap example
+  #+begin_src shell :wrap example
   echo Retrieving disk list via powershell
   powershell.exe -nologo 
   get-disk | select Number, FriendlyName, Size
@@ -197,23 +172,18 @@ raspberry pis.
 
 ** Create and format sd card partition
 
-  Once we know the number of the disk we want to format we can proceed.
-  In the example above I have a 32GB SD Card which shows as number ~1~.
+  Once we know the number of the disk we want to format we can proceed. In the example above I have a 32GB SD Card which shows as number ~1~.
 
-  Checking the disk we can see some partitions that exist already from
-  previous use of the card.  To delete these partitions you can use the
-  ~Remove-Partition -DiskNumber X -PartitionNumber Y~ command where
-  ~X~ and ~Y~ relate to the output of your disk and partition number.
+  Checking the disk we can see some partitions that exist already from previous use of the card.  To delete these partitions you can use the ~Remove-Partition -DiskNumber X -PartitionNumber Y~ command where ~X~ and ~Y~ relate to the output of your disk and partition number.
 
-  Due to the risk of data loss this step is not automated. Once existing
-  partitions have been cleared we can use the following block to:
+  Due to the risk of data loss this step is not automated. Once existing partitions have been cleared we can use the following block to:
   - Create a new partition using masixmum available space
   - Assign a free drive letter in windows
   - Mount the disk in WSL so we can copy to it
   - Copy the install media over to the partition 
 
   #+NAME: Create sd card partition and copy media
-  #+begin_src shell :results output code verbatim replace
+  #+begin_src shell :wrap example
   echo Use powershell to create new partition and format 
   powershell.exe -nologo
   new-partition -disknumber 1 -usemaximumsize -driveletter d
@@ -236,29 +206,38 @@ raspberry pis.
 
 * Step 3 - Boot the pi and remotely connect
 
-  Provided the configuration on the sd card is valid and the pi has
-  been able to successfully obtain an ip address via dhcp on boot 
-  then following a 10-20minute net install process the pi will be
-  online and accessible via ssh using the private key corresponding
-  to the public key we supplied in our ~installer-config.txt~ file.
+  Provided the configuration on the sd card is valid and the pi has been able to successfully obtain an ip address via dhcp on boot then following a 10-20minute net install process the pi will be online and accessible via ssh using the private key corresponding to the public key we supplied in our ~installer-config.txt~ file.
 
-** Setup ssh and connect
+** Setup ssh agent
 
   First step, we ensure our ssh agent is running and has our key added.
 
   #+NAME: Setup ssh agent
-  #+begin_src shell :results output verbatim replace :wrap example
-  # Ensure our ssh-agent is running.
-  eval `ssh-agent`
+  #+begin_src shell :wrap example
+  # If there is no ssh-agent already running
+  if [ -z "$(pgrep ssh-agent)" ]; then
 
-  # Make sure our private key is added.
-  ssh-add ~/.ssh/james
+    # Then clear garbage and start it
+    rm -rf /tmp/ssh-*
+    eval $(ssh-agent -s) > /dev/null
+
+    # Also add my identity
+    ssh-add ~/.ssh/james
+  else
+
+    # Otherwise ensure environment is set
+    export SSH_AGENT_PID=$(pgrep ssh-agent)
+    export SSH_AUTH_SOCK=$(find /tmp/ssh-* -name agent.*) 
+  fi
   #+end_src
+
+ 
+** Port knock and enter
 
   Next we can port knock and connect.
 
   #+NAME: Knock and enter
-  #+begin_src shell :results output verbatim replace :wrap example
+  #+begin_src shell :wrap example
   # Setup machine variables
   export port=2122
   export machineip=192.168.1.122  
@@ -268,7 +247,14 @@ raspberry pis.
   knock $machineip $knocksequence && ssh -p $port $machineip 
   #+end_src
 
-** Setup glusterfs storage cluster
+
+* Step 4 - Configure distributed storage
+
+One of the goals for this raspberry pi cluster is to run with distributed storage, rather than a traditional single device raid array that the server this cluster is replacing is currently running.
+
+The reason I'm interested in this is primarily to explore options for greater hardware redunancy and reliability in the event that a node may go down within the cluster.
+
+** Format and mount storage volumes
 
   Now that our machines are online and we have connected we can setup our storage cluster.
 
@@ -277,7 +263,7 @@ raspberry pis.
   Our first step is to ensure our storage drives attached to our raspberry pi's are formatted. In our case our drives are all showing as ~/dev/sda~ with no existing partitions, ensure you review your situation with ~lsblk~ first and ajdust the commands below as neccessary!
 
   #+NAME: Format and mount storage bricks
-  #+begin_src shell :results output verbatime replace :wrap example
+  #+begin_src shell :wrap example
   # Format the /dev/sda1 partition as xfs
   sudo mkfs.xfs -i size=512 /dev/sda1
   
@@ -291,12 +277,15 @@ raspberry pis.
   sudo mount -a && sudo mount
   #+end_src
 
-  The gluster processes on the nodes need to be able to communicate with each other. To simplify this setup, configure the firewall on each node to accept all traffic from the other node.
+
+** Configure firewall rules
+
+  The gluster processes on the nodes need to be able to communicate with each other. To simplify this setup, configure the [[https://en.wikipedia.org/wiki/Iptables][iptables]] firewall on each node to accept all traffic from the other node(s).
 
   In our four node cluster this means ensuring we have rules present for all nodes. Adjust as neccessary for the requirements of your cluster! 
 
   #+NAME: Setup firewall rules for inter cluster communication
-  #+begin_src shell :results output verbatime replace :wrap example
+  #+begin_src shell :wrap example
   # Add the firewall rules
   sudo iptables -I INPUT -p all -s 192.168.1.122 -j ACCEPT
   sudo iptables -I INPUT -p all -s 192.168.1.124 -j ACCEPT
@@ -307,10 +296,13 @@ raspberry pis.
   sudo netfilter-persistent save
   #+end_src
 
+
+** Ensure the daemon is running
+
   Next we need to ensure the glusterfs daemon is enabled and started.
 
   #+NAME: Ensure glusterd is enabled and running
-  #+begin_src shell :results output verbatim replace :wrap example
+  #+begin_src shell :wrap example
   # Ensure the gluster service starts on boot
   sudo systemctl enable glusterd
 
@@ -321,10 +313,13 @@ raspberry pis.
   sudo systemctl status glusterd  
   #+end_src
 
+
+** Test connectivity between peers
+
   Now we're ready to test connectivity between all the gluster peers.
   
   #+NAME: Complete cluster probes
-  #+begin_src shell :results output verbatim replace :wrap example
+  #+begin_src shell :wrap example
   # Complete the peer probes
   sudo gluster peer probe 192.168.1.122
   sudo gluster peer probe 192.168.1.124
@@ -335,12 +330,15 @@ raspberry pis.
   sudo gluster peer status
   #+end_src
 
+
+** Setup gluster volume
+
   Provided connectivity was established successfully you are now ready to setup a gluster volume.
 
   *Note:* The ~gluster volume create~ command only needs to be run from any one node.  
 
   #+NAME: Setup gluster volume
-  #+begin_src shell :results output verbatim repalce :wrap example
+  #+begin_src shell :wrap example
   # Create the gluster volume folder (all nodes)
   sudo mkdir -p /data/brick1/jammaraid 
 
@@ -354,13 +352,52 @@ raspberry pis.
   sudo gluster volume info
   #+end_src
 
+
+** Mount and use the new volume
+
   Now that the gluster volume has been created and started we can mount it within each node so it is accessible for use :)
 
   #+NAME: Mount the gluster volume
-  #+begin_src shell :results output verbatim replace :wrap example
+  #+begin_src shell :wrap example
   # Create the gluster volume mount point
   sudo mkdir -p /media/raid
  
   # Mount the volume
   sudo mount -t glusterfs localhost:jammaraid /media/raid    
   #+end_src
+
+
+* Step 5 - Create kubernetes cluster
+
+Now can begin installing [[http://k3s.io/][k3s]] on each of the cluster nodes, and then join them into one compute cluster. This will set us up to be able to deploy workloads to that kubernetes cluster.
+
+** Download k3s setup binary
+
+Our first step is to download the latest ~k3s-armhf~ setup binary from github.
+
+#+NAME: Download latest setup binary
+#+begin_src tmate :wrap example
+# Download the latest release dynamically
+curl -s https://api.github.com/repos/rancher/k3s/releases/latest \
+  | grep "browser_download_url.*k3s-armhf" \
+  | cut -d : -f 2,3 \
+  | tr -d \" \
+  | wget -i -
+
+# Make it executable
+chmod +x k3s-armhf
+#+end_src
+
+
+** Initialise the cluster
+
+As of v1.0.0, K3s is previewing support for running a highly available control plane without the need for an external database. This means there is no need to manage an external etcd or SQL datastore in order to run a reliable production-grade setup. While this feature is currently experimental, we expect it to be the primary architecture for running HA K3s clusters in the future.
+
+This architecture is achieved by embedding a dqlite database within the K3s server process. DQLite is short for "distributed SQLite." According to https://dqlite.io, it is “a fast, embedded, persistent SQL database with Raft consensus that is perfect for fault-tolerant IoT and Edge devices.” This makes it a natural fit for K3s.
+
+To run K3s in this mode, you must have an odd number of server nodes. We recommend starting with three nodes.
+   
+#+NAME: Initialise the cluster
+#+begin_src tmate
+K3S_TOKEN=SECRET k3s server --cluster-init
+#+end_src
