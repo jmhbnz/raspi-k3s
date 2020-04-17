@@ -231,10 +231,12 @@ I chose k3s as it incredibly lightweight but still CNCF certified and production
   fi
   #+end_src
 
- 
+  
 ** Port knock and enter
 
   Next we can port knock and connect.
+
+  Note: There seems to be a minute delay required between port knocks being transmitted and ssh being able to connect which is why a short sleep is included in the knock and enter command.
 
   #+NAME: Knock and enter
   #+begin_src shell :wrap example
@@ -244,7 +246,7 @@ I chose k3s as it incredibly lightweight but still CNCF certified and production
   export knocksequence=[SEQUENCE HERE]
   
   # Knock and enter
-  knock $machineip $knocksequence && ssh -p $port $machineip 
+  knock $machineip $knocksequence && sleep 2 && ssh -p $port $machineip 
   #+end_src
 
 
@@ -373,31 +375,169 @@ Now can begin installing [[http://k3s.io/][k3s]] on each of the cluster nodes, a
 
 ** Download k3s setup binary
 
-Our first step is to download the latest ~k3s-armhf~ setup binary from github.
+Our first step is to download the latest ~k3s-armhf~ setup binary from github. Repeat the steps below for each potential cluster node.
+
+#+NAME: Knock and enter
+#+begin_src tmate
+# Setup machine variables
+export port=2128
+export machineip=192.168.1.128 
+export knocksequence="[SEQUENCE HERE]"
+
+# Gather ssh keys if not already known
+ssh-keyscan -p $port $machineip >> ~/.ssh/known_hosts
+
+# Knock and enter
+knock $machineip $knocksequence && sleep 2 && ssh -p $port $machineip 
+#+end_src
 
 #+NAME: Download latest setup binary
 #+begin_src tmate :wrap example
 # Download the latest release dynamically
 curl -s https://api.github.com/repos/rancher/k3s/releases/latest \
-  | grep "browser_download_url.*k3s-armhf" \
-  | cut -d : -f 2,3 \
-  | tr -d \" \
-  | wget -i -
+      | grep "browser_download_url.*k3s-armhf" \
+      | cut -d : -f 2,3 \
+      | tr -d \" \
+      | wget -i -
 
 # Make it executable
 chmod +x k3s-armhf
+
+# Leave the node
+exit
 #+end_src
 
 
 ** Initialise the cluster
 
-As of v1.0.0, K3s is previewing support for running a highly available control plane without the need for an external database. This means there is no need to manage an external etcd or SQL datastore in order to run a reliable production-grade setup. While this feature is currently experimental, we expect it to be the primary architecture for running HA K3s clusters in the future.
+Our next step we only run on the one node that will operate as our cluster master. K3s provides an installation script that is a convenient way to install it as a service on systemd or openrc based systems. This script is available at https://get.k3s.io. 
 
-This architecture is achieved by embedding a dqlite database within the K3s server process. DQLite is short for "distributed SQLite." According to https://dqlite.io, it is “a fast, embedded, persistent SQL database with Raft consensus that is perfect for fault-tolerant IoT and Edge devices.” This makes it a natural fit for K3s.
+After running this installation:
 
-To run K3s in this mode, you must have an odd number of server nodes. We recommend starting with three nodes.
-   
-#+NAME: Initialise the cluster
+ * The ~k3s~ service will be configured to automatically restart after node reboots or if the process crashes or is killed.
+ * Additional utilities will be installed, including ~kubectl~, ~crictl~, ~ctr~, ~k3s-killall.sh~, and ~k3s-uninstall.sh~.
+ * A ~kubeconfig~ file will be written to ~/etc/rancher/k3s/k3s.yaml~ and the kubectl installed by K3s will automatically use it.
+
+First step, let's login to our chosen master.
+
+#+NAME: Knock and enter
 #+begin_src tmate
-K3S_TOKEN=SECRET k3s server --cluster-init
+# Setup machine variables
+export port=2124
+export machineip=192.168.1.124
+export knocksequence="[SEQUENCE HERE]"
+
+# Gather ssh keys if not already known
+ssh-keyscan -p $port $machineip >> ~/.ssh/known_hosts
+
+# Knock and enter
+knock $machineip $knocksequence && sleep 2 && ssh -p $port $machineip 
+#+end_src
+
+
+Once we have logged in we can run the install script.
+
+#+NAME: Initialise the master node
+#+begin_src tmate
+curl -sfL https://get.k3s.io | sh -
+#+end_src
+
+
+Once our master has been deployed by the installation script we can check ~kubectl~ to ensure they are listed as expected.
+
+#+NAME: Check cluster nodes
+#+begin_src tmate
+# Check kubectl
+sudo kubectl get nodes
+
+# Obtain cluster token
+sudo cat /var/lib/rancher/k3s/server/node-token
+#+end_src
+
+
+** Join worker nodes
+
+Once we have established our cluster masters we need to join workers into the cluster. To install on worker nodes and add them to the cluster, run the installation script with the K3S_URL and K3S_TOKEN environment variables. 
+
+Repeat the steps below for each worker node, ensuring the node port, machineip and knocksequence are set correctly. 
+
+#+NAME: Knock and enter
+#+begin_src tmate
+# Setup machine variables
+export port=2128
+export machineip=192.168.1.128
+export knocksequence="[SEQUENCE HERE]"
+
+# Gather ssh keys if not already known
+ssh-keyscan -p $port $machineip >> ~/.ssh/known_hosts
+
+# Knock and enter
+knock $machineip $knocksequence && sleep 2 && ssh -p $port $machineip 
+#+end_src
+
+#+NAME: Join worker
+#+begin_src tmate
+# Set environment variables
+export K3S_URL=https://192.168.1.124:6443
+export K3S_TOKEN=[TOKEN_HERE]
+
+# Run the installation script
+curl -sfL https://get.k3s.io | sh -
+
+# Leave the worker
+exit
+#+end_src
+
+
+** Check the cluster status
+
+Once all workers have been joined lets hop back onto the master and confirm that all nodes are listed as expected.
+
+#+NAME: Knock and enter
+#+begin_src tmate
+# Setup machine variables
+export port=2124
+export machineip=192.168.1.124
+export knocksequence="[SEQUENCE HERE]"
+
+# Gather ssh keys if not already known
+ssh-keyscan -p $port $machineip >> ~/.ssh/known_hosts
+
+# Knock and enter
+knock $machineip $knocksequence && sleep 2 && ssh -p $port $machineip 
+#+end_src
+
+
+#+NAME: Check cluster nodes
+#+begin_src tmate
+# Check kubectl
+sudo kubectl get nodes
+#+end_src
+
+
+* Step 6 - Deploy a service
+
+With our cluster now running, now we can take it for a spin! Let's deploy a simple service. We'll deploy figlet which will take a body over HTTP on port 8080 and return an ASCII-formatted string.
+
+We'll need to be logged into our cluster master to do this.
+
+#+NAME: Create the service
+#+begin_src tmate
+cat <<EOF > openfaas-figlet-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: openfaas-figlet
+  labels:
+    app: openfaas-figlet
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+      nodePort: 31111
+  selector:
+    app: openfaas-figlet
+EOF
 #+end_src
