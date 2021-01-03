@@ -14,6 +14,18 @@ systemctl restart sshd
 
 
 #================================================================
+# Post install setup docker
+#================================================================
+echo "Installing docker via helper script."
+curl -fsSL https://get.docker.com -o get-docker.sh | sh -
+
+echo "Adding docker permissions for standard user."
+usermod -aG docker james
+#================================================================
+
+
+
+#================================================================
 # Post install fail2ban configuration
 #================================================================
 echo "Ensure fail2ban service is enabled..."
