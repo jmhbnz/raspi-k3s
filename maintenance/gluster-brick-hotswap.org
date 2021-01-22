@@ -1,0 +1,275 @@
+#+TITLE: Pi cluster migrate glusterfs brick
+#+AUTHOR: James Blair
+#+EMAIL: mail@jamesblair.net
+#+DATE: 23rd January 2021
+
+For our Raspberry Pi cluster one of the maintenance tasks we want to be able to do whenever required is add a new machine to the cluster as a replacement for an existing machine. There could be a lot of reasons to do this, such as a hardware failure on an existing machine or wanting to do a rebuild of an existing machine.
+
+On our Raspberry Pi cluster we run [[https://en.wikipedia.org/wiki/GlusterFS][GlusterFS]] for our scalable network attached storage with each machine in the cluster having a physical storage device attached (~/dev/sda1~). Currently we are using these [[https://www.pbtech.co.nz/product/HDDSEA0428/Seagate-4TB-Expansion-Portable-Hard-Drive][4TB external mechanical drives]] as they are a cost effective option for the bulk low performance storage required. Each machine formats their drive as ~xfs~ and mounts it to ~/data/brick1~.
+
+If we want to swap a machine out of the cluster and replace it with a new one we need to be able to safely migrate a disk to the new machine and ensure we migrate the brick to the new server in ~glusterfs~. Below is a step by step guide on how to do this.
+
+*Note:* This process has only been tested on a "quiet" cluster, i.e. where no / limited writes were occurring on the ~glusterfs~ cluster at the time. It may be best to stop the volume if that can't be guaranteed.
+
+
+* Step 1 - Prepare the new machine
+
+Follow the automated build process documented in the [[../readme.org][readme]] to build the new machine and ensure it has the required mount points created to be ready for glusterfs.
+
+
+* Step 2 - Check the current state of the volume
+
+Let's note down and confirm which machine we are removing! Additionally we should check for any running volume tasks, i.e. rebalances or other operations that could be impacted by the removal of a brick.
+
+The code blocks below can be run individually from within ~humacs~ by pressing ~,,~ when in normal mode and with a cursor inside the block or all at once in sequence by pressing ~, b s~ when in normal mode and the cursor is within this subtree.
+
+** Define connection variables
+
+Firstly we need to connect to a peer in the glusterfs cluster that is NOT the machine we are going to remove in order to run the commands required to migrate a brick.
+
+To save some time editing in future let's set some variables for the connection parameters we'll use.
+
+#+NAME: Ip
+#+BEGIN_SRC emacs-lisp :results silent
+(setq machine_ip "192.168.1.124")
+#+END_SRC
+
+#+NAME: Port
+#+BEGIN_SRC emacs-lisp :results silent
+(setq machine_port "2124")
+#+END_SRC
+
+#+NAME: User
+#+BEGIN_SRC emacs-lisp :results silent
+(setq machine_user "james")
+#+END_SRC
+
+#+NAME: Sequence
+#+BEGIN_SRC emacs-lisp :results silent
+(setq knock_sequence "[SEQUENCE HERE]")
+#+END_SRC
+
+#+NAME: Confirm values
+#+BEGIN_SRC shell :var ip=Ip port=Port user=User sequence=Sequence
+echo "Machine IP:     $ip"
+echo "Machine Port:   $port"
+echo "Machine User:   $user"
+echo "Knock sequence: $sequence"
+#+END_SRC
+
+#+RESULTS: Confirm values
+#+begin_example
+Machine IP:     "192.168.1.124"
+Machine Port:   "2124"
+Machine User:   "james"
+Knock sequence: "[SEQUENCE HERE]"
+#+end_example
+
+
+** Confirm the volume information
+
+As a precaution let's confirm which volume we are working with. We can also check the list of bricks returned to verify which brick we will be migrating to a new machine.
+
+#+NAME: Confirm volume information
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command via ssh
+eval "ssh $user@$ip -p $port sudo gluster volume info"
+#+END_SRC
+
+#+RESULTS: Confirm volume information
+#+begin_src bash
+
+Volume Name: jammaraid
+Type: Distribute
+Volume ID: e073c9ac-6d0a-4163-87c1-e8df26c95669
+Status: Started
+Snapshot Count: 0
+Number of Bricks: 5
+Transport-type: tcp
+Bricks:
+Brick1: 192.168.1.122:/data/brick1/jammaraid
+Brick2: 192.168.1.126:/data/brick1/jammaraid
+Brick3: 192.168.1.128:/data/brick1/jammaraid
+Brick4: 192.168.1.124:/data/brick1/jammaraid
+Options Reconfigured:
+nfs.disable: on
+transport.address-family: inet
+performance.client-io-threads: on
+#+end_src
+
+
+** Confirm the volume status
+
+We should also check to confirm that there are no ~glusterfs~ volume tasks running currently.
+
+#+NAME: Confirm volume status
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command via ssh
+eval "ssh $user@$ip -p $port sudo gluster volume status"
+#+END_SRC
+
+#+RESULTS: Confirm volume status
+#+begin_src bash
+Status of volume: jammaraid
+Gluster process                             TCP Port  RDMA Port  Online  Pid
+------------------------------------------------------------------------------
+Brick 192.168.1.122:/data/brick1/jammaraid  49152     0          Y       722
+Brick 192.168.1.128:/data/brick1/jammaraid  49152     0          Y       723
+Brick 192.168.1.124:/data/brick1/jammaraid  49152     0          Y       886
+Brick 192.168.1.126:/data/brick1/jammaraid  49152     0          Y       836
+
+Task Status of Volume jammaraid
+------------------------------------------------------------------------------
+There are no active volume tasks
+
+#+end_src
+
+
+* Step 3 - Migrate the physical disk
+
+For this next step we are going to power down both the machine we are migrating from and machine we are migrating to so that we can unplug the disk from the old machine and plug it into the new one.
+
+We could probably hot swap the disk but this is not something I have tested. This stage I have left as a manual step, as it involves physical hardware.
+
+Once the disk has been attached to the new machine power the new machine on.
+
+
+* Step 4 - Add the peer and brick
+
+With the new machine now attached to the disk and powered on we can get it added as a peer in the glusterfs cluster and use the ~add-brick~ command to bring the disk back into service.
+
+** Add the new machine as a peer
+
+First up we need probe the machine from an existing peer in the cluster to ensure it can be reached and is ready.
+
+*Note* Ensure firewall rules allow connectivity to the new peer, I needed to run ~sudo iptables -I INPUT -p all -s 192.168.1.130 -j ACCEPT~ on all the other peers in the cluster.
+
+#+NAME: Add the new peer to the cluster
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command to add peer and check status via ssh
+eval "ssh $user@$ip -p $port sudo gluster peer probe 192.168.1.130"
+eval "ssh $user@$ip -p $port sudo gluster peer status"
+#+END_SRC
+
+
+With those commands run we should see our old machine showing in the peer status list as ~Disconnected~ and our new machine showing as ~Connected~.
+
+#+RESULTS: Add the new peer to the cluster
+#+begin_src bash
+peer probe: success. Host 192.168.1.130 port 24007 added to peer list
+Number of Peers: 4
+
+Hostname: 192.168.1.122
+Uuid: d8680054-d376-40c7-9944-465f5fdb7c65
+State: Peer in Cluster (Connected)
+
+Hostname: 192.168.1.128
+Uuid: 9fb11fc6-7a6e-4353-a12e-1ba68755f128
+State: Peer in Cluster (Connected)
+
+Hostname: 192.168.1.126
+Uuid: 71d5d33d-df54-49f1-a4f1-21e20390342c
+State: Peer in Cluster (Disconnected)
+
+Hostname: 192.168.1.130
+Uuid: bd7d6d14-9654-41b0-84c3-0723763760cb
+State: Peer in Cluster (Connected)
+#+end_src
+
+
+** Add the 'new' brick back into the cluster
+
+With our machine now in the cluster we need to add the 'new' brick to the cluster. I put 'new' in air quotes because it's the same brick we detached from our old machine.
+
+We add the ~force~ flag to the ~add-brick~ command as otherwise glusterfs will complain that the brick is already part of a volume.
+
+#+NAME: Add the new brick to the volume
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command to add peer and check status via ssh
+eval "ssh $user@$ip -p $port sudo gluster add-brick jammaraid 192.168.1.130:/data/brick1/jammaraid force"
+#+END_SRC
+
+
+With the brick added we should see that reflected in the volume status.
+
+#+NAME: Confirm brick added
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command via ssh
+eval "ssh $user@$ip -p $port sudo gluster volume status"
+#+END_SRC
+
+#+RESULTS: Confirm brick added
+#+begin_src bash
+Status of volume: jammaraid
+Gluster process                             TCP Port  RDMA Port  Online  Pid
+------------------------------------------------------------------------------
+Brick 192.168.1.122:/data/brick1/jammaraid  49152     0          Y       722
+Brick 192.168.1.128:/data/brick1/jammaraid  49152     0          Y       723
+Brick 192.168.1.124:/data/brick1/jammaraid  49152     0          Y       886
+Brick 192.168.1.130:/data/brick1/jammaraid  49152     0          Y       836
+
+Task Status of Volume jammaraid
+------------------------------------------------------------------------------
+There are no active volume tasks
+
+#+end_src
+
+
+* Step 5 - Remove old machine
+
+With the glusterfs brick now migrated successfully we are ready to remove the old machine from the glusterfs cluster which will involve removing the brick and peer.
+
+** Remove the old brick
+
+First up we need to remove the brick, we need to add the ~force~ flag to the ~remove-brick~ command and also confirm "y" at a prompt which we can automate with echo.
+
+#+NAME: Remove old brick
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command via ssh
+eval "ssh $user@$ip -p $port 'echo "y" | sudo gluster volume remove-brick jammaraid 192.168.1.126:/data/brick1/jammaraid force'"
+#+END_SRC
+
+#+RESULTS: Remove old brick
+#+begin_src bash
+Remove-brick force will not migrate files from the removed bricks, so they will no longer be available on the volume.
+Do you want to continue? (y/n) volume remove-brick commit force: success
+#+end_src
+
+
+** Remove the old peer
+
+With the brick removed we can safely remove the peer from the glusterfs cluster.
+
+#+NAME: Remove old peer
+#+BEGIN_SRC bash :var ip=Ip port=Port user=User sequence=Sequence :results output code replace verbatim
+# Port knock to open ssh on the machine
+eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
+
+# Run the command via ssh
+eval "ssh $user@$ip -p $port sudo gluster peer detach 192.168.1.126"
+#+END_SRC
+
+#+RESULTS: Remove old peer
+#+begin_src bash
+peer detach: success
+#+end_src
+
+Job done! We have migrated a disk with its glusterfs brick from one machine to another :)
