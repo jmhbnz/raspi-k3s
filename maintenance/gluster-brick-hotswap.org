@@ -1,4 +1,4 @@
-#+TITLE: Pi cluster migrate glusterfs brick
+#+TITLE: How to migrate a glusterfs brick to a new machine
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
 #+DATE: 23rd January 2021
