@@ -198,7 +198,7 @@ We add the ~force~ flag to the ~add-brick~ command as otherwise glusterfs will c
 eval "knock $ip $(echo $sequence | tr -d '"') && sleep 2"
 
 # Run the command to add peer and check status via ssh
-eval "ssh $user@$ip -p $port sudo gluster add-brick jammaraid 192.168.1.130:/data/brick1/jammaraid force"
+eval "ssh $user@$ip -p $port sudo gluster volume add-brick jammaraid 192.168.1.130:/data/brick1/jammaraid force"
 #+END_SRC
 
 
