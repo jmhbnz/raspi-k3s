@@ -1,5 +1,5 @@
 # -*- ii: ii; -*-
-#+TITLE: Raspberry pi k3s cluster guide
+#+TITLE: Raspberry pi kubernetes cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
 #+DATE: 27th March 2021
@@ -20,17 +20,20 @@ I chose k3s as it incredibly lightweight but still CNCF certified and production
 
 For this guide I am using four [[https://www.pishop.us/product/raspberry-pi-4-model-b-4gb/][Raspberry Pi 4 4GB]] machines and one [[https://www.pbtech.co.nz/product/SEVRBP0267/Raspberry-Pi-4-Model-B-8GB-LPDDR4-Quad-Core-Cortex][Raspberry Pi 4 8GB]] for more memory hungry workloads.
 
+
 ** Boot media
 
 This guide requires each Raspberry Pi to have a removable SD card or other removable boot media.  I am using five 32GB SD Cards though any USB or SD card at least 8GB in size should work fine.
 
 *Note:* Newer raspberry pi firmware can support USB or even NVME booting. If boot disk IO performance is the goal of your cluster you may want to explore this instead. Additionally network booting is also possible if you would prefer to avoid using SD Cards or other attached boot media.
 
+
 ** Power supply
 
 For this cluster I am using power over ethernet using [[https://www.pbtech.co.nz/product/SEVRBP0184/Raspberry-Pi-Add-On-Board-Power-over-Ethernet-PoE][Pi POE Hat]] addon boards. This means each Pi does not need a separate cable for power supply so is much cleaner.
 
 *Note:* A power over ethernet cable switch is required for this configration. I am using [[https://www.pbtech.co.nz/product/SWHNGR1208120/NETGEAR-ProSAFE-GS108PP-8-Port-Gigabit-Unmanaged-P][this 8 port gigabit Netgear switch]] which supports 120 watts for POE.  Each Pi will require at least 15 watts.
+
 
 * Step 1 - Prepare boot media for master 
 
@@ -42,6 +45,7 @@ Rather than doing an installation and configuration of an os image from scratch 
 
 #+NAME: Download the latest release zip
 #+begin_src tmate
+cd ~/Documents/raspi-k3s
 echo Downloading latest release zip from github
 curl -s https://api.github.com/repos/foodeas/raspberrypi-ua-netinst/releases/latest \
   | grep "browser_download_url.*zip" \
