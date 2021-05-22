@@ -2,7 +2,7 @@
 #+TITLE: Raspberry pi kubernetes cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
-#+DATE: 27th March 2021
+#+DATE: 23rd May 2021
 
 
 This file serves as a complete step by step guide for creating a bare metal raspberry pi kubernetes cluster using [[https://k3s.io/][k3s]] from [[https://rancher.com/][Rancher]].
@@ -37,39 +37,49 @@ For this cluster I am using power over ethernet using [[https://www.pbtech.co.nz
 
 * Step 1 - Prepare boot media for master 
 
-** Download the latest release
+** Download sd card imaging utility
 
-Our first step is to create the bootable SD Card with a minimal install of [[https://www.raspbian.org/][Raspbian]], which is a free operating system based on [[https://www.debian.org/][Debian]] and is optimised for Raspberry Pi hardware.
+Our first step is to create the bootable SD Card with a minimal install of [[https://ubuntu.com/download/raspberry-pi][Ubuntu Server 20.04 x64]], which is a free and open source operating system based on [[https://www.debian.org/][Debian]].
 
-Rather than doing an installation and configuration of an os image from scratch I found [[https://github.com/FooDeas/raspberrypi-ua-netinst][this project]] on Github which automates the install and configuration process nicely.
+To simplify the sd card creation process we can use the open source [[https://github.com/raspberrypi/rpi-imager][rpi-imager]] utility, the code snippet below will download the latest release:
 
-#+NAME: Download the latest release zip
-#+begin_src tmate
-cd ~/Documents/raspi-k3s
-echo Downloading latest release zip from github
-curl -s https://api.github.com/repos/foodeas/raspberrypi-ua-netinst/releases/latest \
-  | grep "browser_download_url.*zip" \
-  | cut -d : -f 2,3 \
-  | tr -d \" \
-  | wget -i -
-  
-echo Checking file is now present
-ls -l | grep *.zip
-  
-echo Extracting the zip file
-unzip -q -d installer *.zip
-ls -l | grep installer
+#+NAME: Download rpi-imager utility
+#+begin_src bash
+  echo Downloading latest release zip from github
+  curl -s https://api.github.com/repos/raspberrypi/rpi-imager/releases/latest \
+      | grep "browser_download_url.*exe" \
+      | cut -d : -f 2,3 \
+      | tr -d \" \
+      | wget -O /mnt/c/Users/$USER/Downloads/imager.exe -i -
+
+  echo Checking file is now present
+  ls -l /mnt/c/Users/$USER/Downloads/imager.exe
 #+end_src
 
-#+RESULTS: Download the latest release zip
-#+begin_example
+#+RESULTS: Download rpi-imager utility
+#+begin_src bash
 Downloading latest release zip from github
 Checking file is now present
--rw-rw-rw- 1 james james 60299545 Aug 12 08:35 raspberrypi-ua-netinst-v2.4.0.zip
-Extracting the zip file
-drwxrwxrwx 1 james james     4096 Jan 20 11:12 installer
--rwxrwxrwx 1 james james     2863 Jan 10 17:04 installer-config.txt
-#+end_example
+-rwxrwxrwx 1 james james 19770592 Mar 30 07:00 /mnt/c/Users/james/Downloads/imager.exe
+#+end_src
+
+With the software downloaded, let's fire it up the installer and get it setup.
+
+#+NAME: Open imager software installer
+#+begin_src shell :results silent
+cmd.exe /mnt/c/Users/$USER/Downloads/imager.exe
+#+end_src
+
+Once the software is installed let's run it, the code snippet below will launch the application from the default install directory, or alternatively just launch it from your start menu or preferred shortcut.
+
+#+NAME: Launch rpi-imager utility
+#+begin_src shell :results silent
+cd /mnt/c/Program\ Files\ \(x86\)/Raspberry\ Pi\ Imager/ && cmd.exe /k rpi-imager.exe
+#+end_src
+
+
+** Image sd card
+
 
 
 ** Apply custom install configuration
