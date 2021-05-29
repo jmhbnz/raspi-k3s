@@ -80,7 +80,11 @@ cd /mnt/c/Program\ Files\ \(x86\)/Raspberry\ Pi\ Imager/ && cmd.exe /k rpi-image
 
 ** Image sd card
 
+Now that we have sd card imaging software installed and running let's put the first sd card into our system and begin the imaging process.
 
+First select an Operating System, click ~CHOOSE OS~ --> ~Other general purpose OS~ --> ~Ubuntu Server 20.04.2 LTS x64~.
+
+[[./images/imager-distribution.png]]
 
 ** Apply custom install configuration
 
