@@ -13,8 +13,8 @@ Additionally in future I would like the cluster to be portable and operate via 3
 
 I chose k3s as it incredibly lightweight but still CNCF certified and production grade software that is optimised for resource constraints of raspberry pis.
 
-&nbsp;
-&nbsp;
+
+
 
 * Hardware pre-requisites
 
@@ -36,8 +36,8 @@ For this cluster I am using power over ethernet using [[https://www.pbtech.co.nz
 
 *Note:* A power over ethernet cable switch is required for this configration. I am using [[https://www.pbtech.co.nz/product/SWHNGR1208120/NETGEAR-ProSAFE-GS108PP-8-Port-Gigabit-Unmanaged-P][this 8 port gigabit Netgear switch]] which supports 120 watts for POE.  Each Pi will require at least 15 watts.
 
-&nbsp;
-&nbsp;
+
+
 
 * Step 1 - Prepare boot media for master 
 
