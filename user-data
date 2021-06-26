@@ -48,11 +48,12 @@ locale: en_NZ
 
 
 # ==================================================================
-# Harden ssh
+# Harden ssh and set bash prompt
 # ==================================================================
 runcmd:
   - sed -i -e '/^Port/s/^.*$/Port 2122/' /etc/ssh/sshd_config
   - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
   - sed -i -e '$aAllowUsers james' /etc/ssh/sshd_config
   - restart ssh
+  - echo "PS1='\[\033[02;31m\]\u@\H:\[\033[01;34m\]\w\$\[\033[00m\] '" >> /home/james/.bashrc
 # ==================================================================
