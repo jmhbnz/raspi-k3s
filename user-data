@@ -1,4 +1,6 @@
 #cloud-config
+hostname: raspi01
+
 
 # ==================================================================
 # Add users to the system
