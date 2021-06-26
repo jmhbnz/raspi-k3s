@@ -86,86 +86,11 @@ Once you've selected the operating system and sd card, click ~WRITE~. The proces
 [[./images/imager-finished.png]]
 
 
-** Apply custom install configuration
-
-Our next step after downloading the latest release is to apply our own installation configuration using a simple plain text [[https://cloud-init.io/][cloud-init]] file.
-
-There is great documentation online showing what configuration options are available [[https://cloudinit.readthedocs.io/en/latest/topics/modules.html][here]].
-
-For our purposes we just over-write the default cloud init ~user-data~ file on our newly created sd card with a custom ~user-data~ from this repository.
-
-#+NAME: Overwrite installer configuration file
-#+begin_src tmate
-echo Overwriting /installer/raspberrypi-ua-netinst/config/installer-config.txt
-cp installer-config.txt installer/raspberrypi-ua-netinst/config/
-#+end_src
-
-
-** Apply custom post install script
-
-The final step is to supply a post install script which completes additional security hardening and production readiness automatically.
-
-To supply a script we can provide an additional ~post-install.txt~ file as documented [[https://github.com/FooDeas/raspberrypi-ua-netinst/blob/devel/doc/INSTALL_ADVANCED.md][here]].
-
-I have a hardening script prepared in this repository that we can copy in.
-
-#+NAME: Copy in post-install script
-#+begin_src tmate
-echo Copying in post-install.txt
-cp post-install.txt installer/raspberrypi-ua-netinst/config/
-
-echo Display wordcount of file after copy to validate
-wc installer/raspberrypi-ua-netinst/config/post-install.txt
-#+end_src
-
-#+RESULTS: Copy in post-install script
-#+begin_example
-Copying in post-install.txt
-Display wordcount of file after copy to validate
-98  282 3429 installer/raspberrypi-ua-netinst/config/post-install.txt
-#+end_example
-
-
 * Step 2 - Copy the install media to sd card
 
-Our next step is to copy the contents of the ~installer/~ folder to a *FAT32* formatted removable media i.e. SD Card.
+Our next step is to copy the custom ~user-data~ and ~network-config~ files included in this repository to the newly created SD Card.
 
-Unfortunately this is currently a windows step as my dev environment is a Windows 10 laptop with Debian via Windows Subsystem for Linux which does not support ~lsblk~ or other disk management commands.
-
-** Obtain sd card partition information
-
-Our first step is to insert the SD Card and ensure it is formatted correctly as ~FAT32~.  To do that we need to know the number of the disk we want to format, we can find that via powershell.
-
-#+NAME: Get disks via windows powershell
-#+begin_src tmate
-echo Retrieving disk list via powershell
-powershell.exe -nologo -command "get-disk | select Number, FriendlyName, Size"
-#+end_src
-
-#+NAME: Get partitions via windows powershell
-#+begin_src tmate
-echo Retrieving partition list via powershell
-powershell.exe -nologo -command "get-disk | get-partition | select PartitionNumber, DriveLetter, Size, Type"
-#+end_src
-
-
-** Create and format sd card partition
-
-Once we know the number of the disk we want to format we can proceed. In the example above I have a 32GB SD Card which shows as number ~1~.
-
-Checking the disk we can see some partitions that exist already from previous use of the card.  To delete these partitions you can use the ~Remove-Partition -DiskNumber X -PartitionNumber Y~ command where ~X~ and ~Y~ relate to the output of your disk and partition number.
-
-Due to the risk of data loss this step is not automated. Once existing partitions have been cleared we can use the following block to:
-  - Create a new partition using maximum available space
-  - Assign a free drive letter in windows
-  - Mount the disk in WSL so we can copy to it
-  - Copy the install media over to the partition 
-
-#+NAME: Create sd card partition
-#+begin_src tmate
-echo Use powershell to create new partition and format
-powershell.exe -nologo -command "new-partition -disknumber 1 -usemaximumsize -driveletter d; format-volume -driveletter d -filesystem FAT32 -newfilesystemlabel sd"
-#+end_src
+Note: The code block below assumes the SD Card boot partition will be ~D:\~.  You may need to adjust for your environment.
 
 #+NAME: Mount and copy the new media
 #+begin_src tmate
@@ -174,8 +99,9 @@ sudo mkdir /mnt/d
 sudo mount -t drvfs d: /mnt/d/
 
 echo Copy the contents of installer to sd
-cp -r installer/* /mnt/d/
-  
+cp network-config /mnt/d/
+cp user-data /mnt/d/
+
 # We need to wait before we can eject
 sleep 5
 sudo umount /mnt/d
@@ -188,26 +114,19 @@ powershell.exe -nologo -command "(new-object -comobject shell.application).names
 
 * Step 3 - Boot the pi and remotely connect
 
-Provided the configuration on the sd card is valid and the pi has been able to successfully obtain an ip address via dhcp on boot then following a 10-20minute net install process the pi will be online and accessible via ssh using the private key corresponding to the public key we supplied in our ~installer-config.txt~ file.
-  
-** Port knock and enter
+Provided the configuration on the sd card is valid and the pi has been able to successfully configure networking then following a brief install process the pi will be online and accessible via ssh using the private key corresponding to the public key we supplied in our ~user-data~ file.
 
-Now we can port knock and connect.
-
-Note: There seems to be a tiny delay required between port knocks being transmitted and ssh being able to connect which is why a short sleep is included in the knock and enter command.
-
-#+NAME: Knock and enter
+#+NAME: Connect to the pi
 #+begin_src tmate
 # Setup machine variables
-export port=2124
-export machineip=192.168.1.124
-export knocksequence="[SEQUENCE HERE]"
-  
+export port=2142
+export machineip=192.168.1.142
+
 # Gather ssh keys if not already known
 ssh-keyscan -p $port $machineip >> ~/.ssh/known_hosts
  
-# Knock and enter
-knock $machineip $knocksequence && sleep 2 && ssh -p $port $machineip
+# Connect via ssh
+ssh -p $port $machineip
 #+end_src
 
 
