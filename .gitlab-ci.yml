@@ -18,14 +18,10 @@ push_github:
     url: github.com/jmhbnz/raspi-k3s
   script:
     # Output git status
-    - git checkout master && git pull && git status
+    - git checkout "${CI_COMMIT_BRANCH}" && git pull && git status
 
     # Add a new remote for github
     - git remote add github git@github.com:jmhbnz/raspi-k3s.git || true
 
     # Push to the new remote
-    - git push github master
-
-  only:
-    refs:
-      - master
+    - git push github "${CI_COMMIT_BRANCH}"
