@@ -47,22 +47,15 @@ To simplify the sd card creation process we can use the open source [[https://gi
 
 #+NAME: Download rpi-imager utility
 #+begin_src bash
-  echo Downloading latest release zip from github
-  curl -s https://api.github.com/repos/raspberrypi/rpi-imager/releases/latest \
+echo Downloading latest release zip from github
+curl -s https://api.github.com/repos/raspberrypi/rpi-imager/releases/latest \
       | grep "browser_download_url.*exe" \
       | cut -d : -f 2,3 \
       | tr -d \" \
       | wget -O /mnt/c/Users/$USER/Downloads/imager.exe -i -
 
-  echo Checking file is now present
-  ls -l /mnt/c/Users/$USER/Downloads/imager.exe
-#+end_src
-
-#+RESULTS: Download rpi-imager utility
-#+begin_src bash
-Downloading latest release zip from github
-Checking file is now present
--rwxrwxrwx 1 james james 19770592 Mar 30 07:00 /mnt/c/Users/james/Downloads/imager.exe
+echo Checking file is now present
+ls -l /mnt/c/Users/$USER/Downloads/imager.exe
 #+end_src
 
 With the software downloaded, let's fire it up the installer and get it setup.
@@ -95,32 +88,17 @@ Once you've selected the operating system and sd card, click ~WRITE~. The proces
 
 ** Apply custom install configuration
 
-Our next step after downloading the latest release is to apply our own installation configuration using a simple txt file.
+Our next step after downloading the latest release is to apply our own installation configuration using a simple plain text [[https://cloud-init.io/][cloud-init]] file.
 
-There is great documentation online showing what configuration options are available [[https://github.com/malignus/raspberrypi-ua-netinst/blob/master/doc/INSTALL_CUSTOM.md][here]].
+There is great documentation online showing what configuration options are available [[https://cloudinit.readthedocs.io/en/latest/topics/modules.html][here]].
 
-For our purposes we just over-write the file downloaded and extracted in the previous step with one we have prepared earlier :)
+For our purposes we just over-write the default cloud init ~user-data~ file on our newly created sd card with a custom ~user-data~ from this repository.
 
 #+NAME: Overwrite installer configuration file
 #+begin_src tmate
-echo Display wordcount of file after copy to validate update wordcount of original file for comparison
-wc installer/raspberrypi-ua-netinst/config/installer-config.txt
-
 echo Overwriting /installer/raspberrypi-ua-netinst/config/installer-config.txt
 cp installer-config.txt installer/raspberrypi-ua-netinst/config/
-
-echo Display wordcount of file after copy to validate update
-wc installer/raspberrypi-ua-netinst/config/installer-config.txt
 #+end_src
-
-#+RESULTS: Overwrite installer configuration file
-#+begin_example
-Display wordcount of original file for comparison
-3  23 157 installer/raspberrypi-ua-netinst/config/installer-config.txt
-Overwriting /installer/raspberrypi-ua-netinst/config/installer-config.txt
-Display wordcount of file after copy to validate update
-67   85 2863 installer/raspberrypi-ua-netinst/config/installer-config.txt
-#+end_example
 
 
 ** Apply custom post install script
