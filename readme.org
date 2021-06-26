@@ -2,7 +2,7 @@
 #+TITLE: Raspberry pi kubernetes cluster guide
 #+AUTHOR: James Blair
 #+EMAIL: mail@jamesblair.net
-#+DATE: 23rd May 2021
+#+DATE: 26th June 2021
 
 
 This file serves as a complete step by step guide for creating a bare metal raspberry pi kubernetes cluster using [[https://k3s.io/][k3s]] from [[https://rancher.com/][Rancher]].
